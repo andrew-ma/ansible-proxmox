@@ -1,0 +1,55 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - install usbguard
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Install usbguard
+      become: true
+      ansible.builtin.apt:
+        name: usbguard
+        state: present
+
+
+    - name: Generate usbguard rules policy
+      become: true
+      register: __result
+      changed_when: false
+      ansible.builtin.shell:
+        cmd: 'usbguard generate-policy'
+
+
+    - name: On each line, run through regex_replace filter to make USB rules more generic
+      ansible.builtin.set_fact:
+        __usbguard_policy_lines: '{{ __result.stdout_lines | map("ansible.builtin.regex_replace", "via-port\s.*", "") | list }}'
+
+
+    - name: Write policy to file
+      become: true
+      ansible.builtin.copy:
+        content: "{{ __usbguard_policy_lines | join('\n') }}"
+        dest: /etc/usbguard/rules.conf
+        owner: root
+        group: root
+        mode: '0600'
+
+
+    - name: Enable usbguard service
+      become: true
+      ansible.builtin.service:
+        name: usbguard.service
+        state: started
+        enabled: true
+

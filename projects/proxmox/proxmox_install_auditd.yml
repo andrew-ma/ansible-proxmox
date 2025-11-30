@@ -1,0 +1,69 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+# POST_USAGE: ausearch -k pve-config
+#----------------------------------------------
+---
+- name: Proxmox - install auditd
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Install auditd and audispd-plugins
+      become: true
+      ansible.builtin.apt:
+        name:
+          - auditd
+          - audispd-plugins
+        state: present
+
+
+    - name: Enable auditd service
+      become: true
+      ansible.builtin.service:
+        use: sysvinit
+        name: auditd
+        state: restarted
+        enabled: true
+
+
+    - name: Create audit rule
+      become: true
+      ansible.builtin.copy:
+        content: |
+          -w /etc/pve -p wa -k pve-config
+
+        dest: /etc/audit/rules.d/90-pve.rules
+        owner: root
+        group: root
+        mode: '0644'
+
+
+    - name: Restart auditd
+      become: true
+      ansible.builtin.service:
+        use: sysvinit
+        name: auditd
+        state: restarted
+
+
+    - name: List audit rules
+      become: true
+      register: __result
+      ansible.builtin.command:
+        cmd: auditctl -l
+
+
+    - name: Print audit rules
+      ansible.builtin.debug:
+        var: __result.stdout_lines
+
+

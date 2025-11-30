@@ -1,0 +1,46 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - use no subscription repos
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+
+  tasks:
+    - name: Edit /etc/apt/sources.list.d/*.sources
+      become: true
+      loop: '{{ etc_apt_sources_list_d_sources_files }}'
+      ansible.builtin.copy:
+        content: '{{ item.content }}'
+        dest: '{{ item.dest }}'
+        owner: root
+        group: root
+        mode: '0644'
+      vars:
+        etc_apt_sources_list_d_sources_files:
+          - dest: /etc/apt/sources.list.d/ceph.sources
+            content: |
+              Types: deb
+              URIs: http://download.proxmox.com/debian/ceph-squid
+              Suites: trixie
+              Components: no-subscription
+              Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+
+          - dest: /etc/apt/sources.list.d/pve-enterprise.sources
+            content: |
+              Types: deb
+              URIs: http://download.proxmox.com/debian/pve
+              Suites: trixie
+              Components: pve-no-subscription
+              Signed-By: /usr/share/keyrings/proxmox-archive-keyring.gpg
+

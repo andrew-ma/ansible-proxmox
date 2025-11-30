@@ -1,0 +1,55 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - install tmux
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Install tmux
+      become: true
+      ansible.builtin.apt:
+        name: tmux
+        state: present
+
+
+    - name: Create tmux config file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ etc_tmux_conf_content }}'
+        dest: /etc/tmux.conf
+        owner: root
+        group: root
+        mode: '0644'
+      vars:
+        etc_tmux_conf_content: |
+          setw -g mode-keys vi
+          set-option -g prefix C-a
+          unbind-key C-b
+          bind-key C-a send-prefix
+          set -g status-position top
+
+
+    - name: Create profile script to automatically open tmux
+      become: true
+      ansible.builtin.copy:
+        content: '{{ etc_profile_d_tmux_sh_content }}'
+        dest: /etc/profile.d/tmux.sh
+        owner: root
+        group: root
+        mode: '0644'
+      vars:
+        etc_profile_d_tmux_sh_content: |
+          if ! groups $USER|grep -q tmux_excluded_users; then if [ "$PS1" ]; then parent=$(ps -o ppid= -p $$); name=$(ps -o comm= -p $parent); if [ "$name" == "sshd" ] || [ "$name" == "sshd-session" ] || [ "$name" == "login" ]; then tmux; fi; fi; fi
+
+

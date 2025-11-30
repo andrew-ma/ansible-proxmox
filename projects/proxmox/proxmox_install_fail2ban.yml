@@ -1,0 +1,97 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - install fail2ban
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Install fail2ban
+      become: true
+      ansible.builtin.apt:
+        name: fail2ban
+        state: present
+
+
+    - name: Create fail2ban jail file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ etc_fail2ban_jail_d_custom_proxmox_conf_content }}'
+        dest: /etc/fail2ban/jail.d/custom_proxmox.conf
+        owner: root
+        group: root
+        mode: '0644'
+      vars:
+        etc_fail2ban_jail_d_custom_proxmox_conf_content: |
+          [sshd]
+          backend = systemd
+          enabled = true
+          port = ssh
+          logpath = %(sshd_log)s
+          filter = sshd[mode=aggressive]
+          maxretry = 3
+          findtime = 2h
+          bantime = 1h
+
+          [proxmox]
+          enabled = true
+          port = https,http,8006
+          filter = custom_proxmox
+          backend = systemd
+          maxretry = 3
+          findtime = 2h
+          bantime = 1h
+
+
+    - name: Create fail2ban filter file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ etc_fail2ban_filter_d_custom_proxmox_conf_content }}'
+        dest: /etc/fail2ban/filter.d/custom_proxmox.conf
+        owner: root
+        group: root
+        mode: '0644'
+      vars:
+        etc_fail2ban_filter_d_custom_proxmox_conf_content: |
+          [Definition]
+          failregex = pvedaemon\[.*authentication failure; rhost=<HOST> user=.* msg=.*
+          ignoreregex =
+
+
+    - name: Restart fail2ban
+      become: true
+      ansible.builtin.service:
+        name: fail2ban.service
+        state: restarted
+        enabled: true
+
+
+    - name: Get status of fail2ban-client
+      become: true
+      register: __result
+      loop:
+        - fail2ban-client status
+        - fail2ban-client status sshd
+        - fail2ban-client status proxmox
+      ansible.builtin.command:
+        cmd: '{{ item }}'
+
+
+    - name: Print fail2ban result
+      loop: '{{ __result.results }}'
+      loop_control:
+        label: '{{ item.item }}'
+      ansible.builtin.debug:
+        var: 'item.stdout_lines'
+
+

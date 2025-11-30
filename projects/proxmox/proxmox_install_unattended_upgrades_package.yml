@@ -1,0 +1,47 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - install unattended-upgrades
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Install unattended upgrades
+      become: true
+      ansible.builtin.apt:
+        name: unattended-upgrades
+        state: present
+
+
+    - name: Create apt auto-upgrades config file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ etc_apt_apt_conf_d_20auto_upgrades_content }}'
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        owner: root
+        group: root
+        mode: '0644'
+      vars:
+        etc_apt_apt_conf_d_20auto_upgrades_content: |
+          APT::Periodic::AutocleanInterval "7";
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+
+
+    - name: Enable unattended-upgrades service
+      become: true
+      ansible.builtin.service:
+        name: unattended-upgrades.service
+        state: restarted
+        enabled: true
+

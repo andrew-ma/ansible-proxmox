@@ -1,0 +1,75 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#   - NTP_SERVER (ip_address): ip address of NTP Server
+#----------------------------------------------
+---
+- name: Proxmox - change NTP server
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+
+    - name: Assertions - Variables
+      ansible.builtin.assert:
+        that:
+          - NTP_SERVER is defined and NTP_SERVER|length>0
+
+  tasks:
+    - name: Edit chrony config to delete lines starting with pool
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/chrony/chrony.conf
+        regexp: '^pool'
+        state: absent
+        owner: root
+        group: root
+        mode: '0644'
+
+
+    - name: Edit chrony config to delete lines starting with server
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/chrony/chrony.conf
+        regexp: '^server'
+        state: absent
+
+
+    - name: Edit chrony config to add as first line the NTP server
+      become: true
+      ansible.builtin.lineinfile:
+        path: /etc/chrony/chrony.conf
+        regexp: '^server '
+        line: 'server {{ NTP_SERVER }} iburst'
+        insertbefore: BOF
+
+
+    - name: Restart chronyd
+      become: true
+      ansible.builtin.service:
+        name: chronyd
+        state: restarted
+
+
+    - name: Pause for 5 seconds
+      ansible.builtin.pause:
+        seconds: 5
+
+
+    - name: Get chronyc output
+      register: __result
+      ansible.builtin.command:
+        cmd: chronyc sources -v
+
+
+    - name: Print
+      ansible.builtin.debug:
+        var: __result.stdout_lines
+
