@@ -1,0 +1,57 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - limit SSH algorithms
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Create sshd config file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ __etc_ssh_sshd_config_d_content }}'
+        dest: /etc/ssh/sshd_config.d/algorithms.conf
+        owner: root
+        group: root
+        mode: '0600'
+      vars:
+        __etc_ssh_sshd_config_d_content: |
+          gssapikexalgorithms gss-group16-sha512-
+          ciphers aes256-gcm@openssh.com
+          macs hmac-sha2-512,hmac-sha2-512-etm@openssh.com
+          kexalgorithms ecdh-sha2-nistp384,diffie-hellman-group16-sha512
+          casignaturealgorithms ecdsa-sha2-nistp384,rsa-sha2-512
+          hostbasedacceptedalgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com
+          hostkeyalgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com
+          pubkeyacceptedalgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com
+          compression no
+          fingerprinthash SHA512
+          authenticationmethods publickey password
+          passwordauthentication yes
+          pubkeyauthentication yes
+          hostbasedauthentication no
+          kerberosauthentication no
+          gssapiauthentication no
+          kbdinteractiveauthentication no
+          authorizedkeysfile /etc/ssh/authorized_keys/%u
+          exposeauthinfo no
+          strictmodes yes
+          maxauthtries 1
+
+
+    - name: Restart ssh server
+      become: true
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
