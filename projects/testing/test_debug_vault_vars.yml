@@ -1,0 +1,11 @@
+---
+- name: Test Debug Vault Vars
+  hosts: '{{ HOSTS | default("localhost") }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+  tasks:
+    - name: Print 'EXAMPLE_PASSWORD' in vault
+      ansible.builtin.debug:
+        var: EXAMPLE_PASSWORD
+

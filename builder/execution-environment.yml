@@ -1,0 +1,60 @@
+---
+version: 3
+images:
+  base_image:
+    # name: docker.io/redhat/ubi9-minimal:latest@sha256:61d5ad475048c2e655cd46d0a55dfeaec182cc3faa6348cb85989a7c9e196483
+    name: docker.io/redhat/ubi10-minimal:latest@sha256:28ec2f4662bdc4b0d4893ef0d8aebf36a5165dfb1d1dc9f46319bd8a03ed3365
+options:
+  tags:
+    - ee:latest
+  user: root
+  package_manager_path: /usr/bin/microdnf
+  skip_pip_install: False
+  container_init:
+    cmd: '["ansible-runner", "run", "/runner"]'
+    # entrypoint: '["entrypoint"]'
+dependencies:
+  python_interpreter:
+    package_system: 'python312'
+    python_path: '/usr/bin/python3.12'
+  ansible_core:
+    package_pip: ansible-core==2.20.0
+  ansible_runner:
+    package_pip: ansible-runner
+  galaxy: dependencies/galaxy_requirements.yml
+  python: dependencies/python_requirements.txt
+  system: dependencies/system_requirements.txt
+#build_arg_defaults:
+#  ANSIBLE_GALAXY_CLI_COLLECTION_OPTS: '-s 127.0.0.1'
+#  ANSIBLE_GALAXY_CLI_ROLE_OPTS: '-s 127.0.0.1'
+#  PKGMGR_PRESERVE_CACHE: ''
+additional_build_files:
+  - src: files/ansible.cfg
+    dest: files
+  - src: files/pip.conf
+    dest: files
+  - src: files/offline_ansible/collections
+    dest: files/offline_ansible/collections
+  - src: files/offline_ansible/roles
+    dest: files/offline_ansible/roles
+additional_build_steps:
+  prepend_base:
+    - &copy_pip_conf_file |
+        COPY _build/files/pip.conf /etc/pip.conf
+
+  prepend_galaxy:
+    - &copy_ansible_cfg_file |
+        COPY _build/files/ansible.cfg /etc/ansible/ansible.cfg
+
+    - &install_offline_ansible |
+        COPY _build/files/offline_ansible/collections /tmp/offline_ansible/collections
+        COPY _build/files/offline_ansible/roles /tmp/offline_ansible/roles
+        RUN cd /tmp/offline_ansible/collections && ansible-galaxy collection install -p /usr/share/ansible/collections -r requirements.yml
+        RUN cd /tmp/offline_ansible/roles && ansible-galaxy role install -p /usr/share/ansible/roles -r requirements.yml
+    
+  prepend_builder:
+    - *copy_pip_conf_file
+
+  append_final:
+    - *copy_ansible_cfg_file
+
