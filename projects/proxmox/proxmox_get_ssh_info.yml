@@ -1,0 +1,44 @@
+#----------------------------------------------
+# BECOME: no
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - get SSH info
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Get ssh info
+      register: __result
+      changed_when: false
+      ansible.builtin.command:
+        cmd: ssh -Q '{{ item }}'
+      loop:
+        - cipher
+        - cipher-auth
+        - compression
+        - kex
+        - kex-gss
+        - key
+        - key-cert
+        - key-plain
+        - key-sig
+        - mac
+        - protocol-version
+        - sig
+
+
+    - name: Print info
+      ansible.builtin.debug:
+        var: __formatted_ssh_info
+      vars:
+        __formatted_ssh_info: '{{ __result.results | map("ansible.builtin.dict2items") | map("ansible.builtin.selectattr", "key", "in", ["item", "stdout_lines"]) | map("ansible.builtin.items2dict") }}'
+

@@ -1,0 +1,28 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - clear banner
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+
+  tasks:
+    - name: Clear banner file
+      become: true
+      ansible.builtin.copy:
+        content: ''
+        dest: /etc/issue
+        owner: root
+        group: root
+        mode: '0644'
+

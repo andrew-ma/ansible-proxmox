@@ -1,0 +1,31 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - remove small diffie-hellman moduli
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+
+  tasks:
+    - name: Remove diffie-hellman moduli
+      ansible.builtin.shell:
+        cmd: |
+          awk '$5 >= 3071' /etc/ssh/moduli > /etc/ssh/moduli.large
+          mv /etc/ssh/moduli.large /etc/ssh/moduli
+
+
+    - name: Restart ssh server
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
