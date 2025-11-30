@@ -28,18 +28,13 @@
       register: __result
       changed_when: false
       ansible.builtin.shell:
-        cmd: 'usbguard generate-policy'
-
-
-    - name: On each line, run through regex_replace filter to make USB rules more generic
-      ansible.builtin.set_fact:
-        __usbguard_policy_lines: '{{ __result.stdout_lines | map("ansible.builtin.regex_replace", "via-port\s.*", "") | list }}'
+        cmd: 'usbguard generate-policy -P'
 
 
     - name: Write policy to file
       become: true
       ansible.builtin.copy:
-        content: "{{ __usbguard_policy_lines | join('\n') }}"
+        content: "{{ __result.stdout_lines | join('\n') + '\n' }}"
         dest: /etc/usbguard/rules.conf
         owner: root
         group: root
