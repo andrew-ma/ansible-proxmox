@@ -26,12 +26,16 @@
         mode: '0600'
       vars:
         __etc_ssh_sshd_config_d_content: |
+          match all
           disableforwarding yes
           x11forwarding no
           x11uselocalhost yes
           allowtcpforwarding no
           allowagentforwarding no
           allowstreamlocalforwarding no
+          permitlisten none
+          permitopen none
+          permittunnel no
 
 
     - name: Restart ssh server

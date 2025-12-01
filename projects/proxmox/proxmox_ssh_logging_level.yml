@@ -3,7 +3,7 @@
 # VAULT: no
 #----------------------------------------------
 ---
-- name: Proxmox - SSH disable root password login
+- name: Proxmox - SSH logging level
   hosts: '{{ HOSTS | default(localhost) }}'
   gather_facts: true
   gather_subset:
@@ -20,14 +20,15 @@
       become: true
       ansible.builtin.copy:
         content: '{{ __etc_ssh_sshd_config_d_content }}'
-        dest: /etc/ssh/sshd_config.d/disable_root_password_login.conf
+        dest: /etc/ssh/sshd_config.d/logging_level.conf
         owner: root
         group: root
         mode: '0600'
       vars:
         __etc_ssh_sshd_config_d_content: |
           match all
-          permitrootlogin prohibit-password
+          loglevel VERBOSE
+          syslogfacility AUTHPRIV
 
 
     - name: Restart ssh server

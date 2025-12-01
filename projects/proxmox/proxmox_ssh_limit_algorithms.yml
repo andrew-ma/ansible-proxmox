@@ -26,6 +26,7 @@
         mode: '0600'
       vars:
         __etc_ssh_sshd_config_d_content: |
+          match all
           gssapikexalgorithms gss-group16-sha512-
           ciphers aes256-gcm@openssh.com
           macs hmac-sha2-512,hmac-sha2-512-etm@openssh.com
@@ -34,19 +35,30 @@
           hostbasedacceptedalgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com
           hostkeyalgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com
           pubkeyacceptedalgorithms ecdsa-sha2-nistp384,ecdsa-sha2-nistp384-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-512-cert-v01@openssh.com
+          requiredrsasize 4096
           compression no
           fingerprinthash SHA512
+          rekeylimit 1G 1h
+          hostkey /etc/ssh/ssh_host_rsa_key
+          hostkey /etc/ssh/ssh_host_ecdsa_key
+          maxauthtries 1
+          logingracetime 30
           authenticationmethods publickey password
+          usepam yes
           passwordauthentication yes
+          permitemptypasswords no
           pubkeyauthentication yes
+          authorizedkeysfile /etc/ssh/authorized_keys/%u
           hostbasedauthentication no
           kerberosauthentication no
           gssapiauthentication no
+          gssapikeyexchange no
           kbdinteractiveauthentication no
-          authorizedkeysfile /etc/ssh/authorized_keys/%u
           exposeauthinfo no
           strictmodes yes
-          maxauthtries 1
+          ignorerhosts yes
+          ignoreuserknownhosts no
+          permituserrc no
 
 
     - name: Restart ssh server

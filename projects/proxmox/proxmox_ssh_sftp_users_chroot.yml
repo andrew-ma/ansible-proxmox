@@ -1,0 +1,58 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+# POST_USAGE:
+#     - Create new SFTP user
+#         useradd -s /bin/false -G sftp_users ${USERNAME}
+#
+#     - Create directories: user-chroot (/var/sftp/${USERNAME}), user-writable (/var/sftp/${USERNAME}/${USERNAME})
+#         mkdir -p /var/sftp/${USERNAME}/${USERNAME}
+#
+#         chown root: /var/sftp
+#         chmod 0755 /var/sftp
+#
+#         chown root: /var/sftp/${USERNAME}
+#         chmod 0755 /var/sftp/${USERNAME}
+#
+#         chown ${USERNAME}: /var/sftp/${USERNAME}/${USERNAME}
+#         chmod 0700 /var/sftp/${USERNAME}/${USERNAME}
+#   
+#----------------------------------------------
+---
+- name: Proxmox - SSH sftp_users chroot
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Create sshd config file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ __etc_ssh_sshd_config_d_content }}'
+        dest: /etc/ssh/sshd_config.d/sftp_users_chroot.conf
+        owner: root
+        group: root
+        mode: '0600'
+      vars:
+        __etc_ssh_sshd_config_d_content: |
+          subsystem sftp internal-sftp
+          match group sftp_users
+          chrootdirectory /var/sftp/%u
+          forcecommand internal-sftp -d %u
+          allowtcpforwarding no
+          x11forwarding no
+
+
+    - name: Restart ssh server
+      become: true
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+
