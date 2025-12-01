@@ -33,7 +33,6 @@
 
           [RULES]
 
-          IN ACCEPT -source 192.168.3.0/24 -p tcp -dport 8006 # Allow 8006/tcp from 192.168.3.0/24
 
           [group ansible_managed]
 
