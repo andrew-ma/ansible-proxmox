@@ -38,7 +38,8 @@
           enabled = true
           port = ssh
           logpath = %(sshd_log)s
-          filter = sshd[mode=aggressive]
+          # filter = sshd[mode=aggressive]
+          filter = sshd
           maxretry = 3
           findtime = 2h
           bantime = 1h
