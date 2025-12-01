@@ -8,14 +8,14 @@
   connection: local
   gather_facts: false
   tasks:
-    - name: clear ssh known hosts content
+    - name: clear ssh known hosts file
       ansible.builtin.copy:
         content: ''
         dest: /root/.ssh/known_hosts
 
 
 
-- name: (Remote) Proxmox - regenerate SSH host keys
+- name: (Remote) Proxmox - SSH regenerate host keys
   hosts: '{{ HOSTS | default(localhost) }}'
   gather_facts: true
   gather_subset:

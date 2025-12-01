@@ -3,7 +3,7 @@
 # VAULT: no
 #----------------------------------------------
 ---
-- name: Proxmox - get SSH info
+- name: Proxmox - SSH list algorithms
   hosts: '{{ HOSTS | default(localhost) }}'
   gather_facts: true
   gather_subset:

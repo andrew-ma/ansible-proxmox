@@ -1,0 +1,42 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - SSH disable forwarding
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Create sshd config file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ __etc_ssh_sshd_config_d_content }}'
+        dest: /etc/ssh/sshd_config.d/disable_forwarding.conf
+        owner: root
+        group: root
+        mode: '0600'
+      vars:
+        __etc_ssh_sshd_config_d_content: |
+          disableforwarding yes
+          x11forwarding no
+          x11uselocalhost yes
+          allowtcpforwarding no
+          allowagentforwarding no
+          allowstreamlocalforwarding no
+
+
+    - name: Restart ssh server
+      become: true
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
+

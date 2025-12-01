@@ -1,0 +1,53 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: yes
+#   - AUTHORIZED_KEYS_USER (username)
+#   - AUTHORIZED_KEYS_PUBKEY (ssh public key)
+#----------------------------------------------
+---
+- name: Proxmox - SSH create authorized_keys user file
+  hosts: '{{ HOSTS | default(localhost) }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+
+    - name: Assertions - Variables
+      ansible.builtin.assert:
+        that:
+          - AUTHORIZED_KEYS_USER is defined and AUTHORIZED_KEYS_USER|length>0
+          - AUTHORIZED_KEYS_PUBKEY is defined and AUTHORIZED_KEYS_PUBKEY|length>0
+
+  tasks:
+    - name: Ensure authorized_keys directory exists
+      become: true
+      ansible.builtin.file:
+        state: directory
+        path: /etc/ssh/authorized_keys
+        owner: root
+        group: root
+        mode: '0755'
+
+
+    - name: Ensure authorized_keys file for user exists
+      become: true
+      ansible.builtin.file:
+        state: touch
+        path: '/etc/ssh/authorized_keys/{{ AUTHORIZED_KEYS_USER }}'
+        owner: root
+        group: '{{ AUTHORIZED_KEYS_USER }}'
+        mode: '0640'
+
+
+    - name: Edit contents of user authorized_keys file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ AUTHORIZED_KEYS_PUBKEY }}'
+        dest: '/etc/ssh/authorized_keys/{{ AUTHORIZED_KEYS_USER }}'
+

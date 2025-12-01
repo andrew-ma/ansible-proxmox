@@ -3,7 +3,7 @@
 # VAULT: no
 #----------------------------------------------
 ---
-- name: Proxmox - limit SSH algorithms
+- name: Proxmox - SSH limit algorithms
   hosts: '{{ HOSTS | default(localhost) }}'
   gather_facts: true
   gather_subset:
