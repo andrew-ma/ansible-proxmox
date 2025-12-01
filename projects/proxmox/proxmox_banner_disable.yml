@@ -3,7 +3,7 @@
 # VAULT: no
 #----------------------------------------------
 ---
-- name: Proxmox - clear banner
+- name: Proxmox - banner disable
   hosts: '{{ HOSTS | default("localhost") }}'
   gather_facts: true
   gather_subset:
@@ -17,12 +17,26 @@
 
 
   tasks:
-    - name: Clear banner file
+    - name: Clear banner files
       become: true
       ansible.builtin.copy:
         content: ''
-        dest: /etc/issue
+        dest: '{{ item }}'
         owner: root
         group: root
         mode: '0644'
+      loop:
+        - /etc/issue
+        - /etc/issue.net
+        - /etc/motd
+        - /run/motd.dynamic
+
+
+    - name: Disable pam_motd.so in /etc/pam.d/sshd
+      become: true
+      ansible.builtin.replace:
+        path: '/etc/pam.d/sshd'
+        regexp: '^(session\s+optional\s+pam_motd[.]so\s+.*)$'
+        replace: '# \1'
+        backup: true
 
