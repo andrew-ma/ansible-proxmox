@@ -1,0 +1,39 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - Node - firewall options
+  hosts: '{{ HOSTS | default("localhost") }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Edit node firewall options file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ etc_pve_nodes_pve_host_fw_content }}'
+        dest: '/etc/pve/nodes/pve/host.fw'
+        owner: 'root'
+        group: 'www-data'
+        mode: '0640'
+      vars:
+        etc_pve_nodes_pve_host_fw_content: |
+          [OPTIONS]
+
+          tcpflags: 1
+          nftables: 1
+
+          [RULES]
+
+          GROUP ansible_managed # Insert "ansible_managed" security group
+
+

@@ -1,0 +1,44 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - Cluster - firewall options
+  hosts: '{{ HOSTS | default("localhost") }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Edit cluster firewall options file
+      become: true
+      ansible.builtin.copy:
+        content: '{{ etc_pve_firewall_cluster_fw_content }}'
+        dest: '/etc/pve/firewall/cluster.fw'
+        owner: 'root'
+        group: 'www-data'
+        mode: '0640'
+      vars:
+        etc_pve_firewall_cluster_fw_content: |
+          [OPTIONS]
+
+          enable: 1
+
+          [RULES]
+
+          IN ACCEPT -source 192.168.3.0/24 -p tcp -dport 8006 # Allow 8006/tcp from 192.168.3.0/24
+
+          [group ansible_managed]
+
+          IN ACCEPT -source 192.168.1.0/24 -p tcp -dport 8006 -log notice # Allow Proxmox Web UI (8006/tcp) from Management Network
+          IN ACCEPT -source 192.168.1.0/24 -p tcp -dport 22 -log notice # Allow SSH (22/tcp) from Management Network
+          IN DROP -log nolog # Default Deny
+
+

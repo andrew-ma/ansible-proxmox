@@ -1,0 +1,25 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - Node - stop pve-firewall service
+  hosts: '{{ HOSTS | default("localhost") }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Stop pve-firewall service on node
+      become: true
+      ansible.builtin.service:
+        name: pve-firewall.service
+        state: stopped
+

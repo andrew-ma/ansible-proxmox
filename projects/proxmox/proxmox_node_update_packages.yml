@@ -1,0 +1,25 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+#----------------------------------------------
+---
+- name: Proxmox - Node - update packages
+  hosts: '{{ HOSTS | default("localhost") }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+  tasks:
+    - name: Update packages
+      become: true
+      ansible.builtin.apt:
+        name: '*'
+        state: 'latest'
+

@@ -1,0 +1,89 @@
+#----------------------------------------------
+# BECOME: no
+# VAULT: yes
+#   - PROXMOX_USER (str): (e.g. 'root')
+#   - PROXMOX_TOKEN_ID (str): Create new API token in Proxmox Web UI > Datacenter > Permissions > API Tokens > Add
+#   - PROXMOX_TOKEN_SECRET (str): Copy and paste from Proxmox Web UI
+#   - PROXMOX_HOST (str): (e.g. '192.168.1.100')
+#   - PROXMOX_PORT (str): (e.g. '8006')
+#   - PROXMOX_VALIDATE_CERTS (bool): (e.g. true)
+# COLLECTIONS:
+#   - community.proxmox
+# PIP:
+#   - proxmoxer
+#   - requests
+#----------------------------------------------
+---
+- name: Proxmox - Cluster - Firewall - create security group
+  hosts: 'localhost'
+  connection: local
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  vars:
+    PROXMOX_MANAGEMENT_NETWORK: '192.168.1.0/24'
+    PROXMOX_CLUSTER_FIREWALL_SECURITY_GROUP: 'ansible_managed'
+    __PROXMOX_AUTH_SETTINGS__: &PROXMOX_AUTH_SETTINGS
+        api_user: '{{ PROXMOX_USER }}'
+        api_token_id: '{{ PROXMOX_TOKEN_ID }}'
+        api_token_secret: '{{ PROXMOX_TOKEN_SECRET }}'
+        api_host: '{{ PROXMOX_HOST }}'
+        api_port: '{{ PROXMOX_PORT }}'
+        validate_certs: '{{ PROXMOX_VALIDATE_CERTS }}'
+
+  pre_tasks:
+    - name: Assertions - Variables
+      ansible.builtin.assert:
+        that:
+          - PROXMOX_USER is defined and PROXMOX_USER|length>0
+          - PROXMOX_TOKEN_ID is defined and PROXMOX_TOKEN_ID|length>0
+          - PROXMOX_TOKEN_SECRET is defined and PROXMOX_TOKEN_SECRET|length>0
+          - PROXMOX_HOST is defined and PROXMOX_HOST|length>0
+          - PROXMOX_PORT is defined and PROXMOX_PORT|length>0
+          - 'PROXMOX_VALIDATE_CERTS is defined and PROXMOX_VALIDATE_CERTS|type_debug=="bool"'
+
+  tasks:
+    - name: Create firewall security group
+      community.proxmox.proxmox_firewall:
+        <<: *PROXMOX_AUTH_SETTINGS
+        level: 'cluster'
+        group: '{{ PROXMOX_CLUSTER_FIREWALL_SECURITY_GROUP }}'
+        group_conf: true
+        state: 'present'
+
+
+    - name: Add rules to security group
+      community.proxmox.proxmox_firewall:
+        <<: *PROXMOX_AUTH_SETTINGS
+        level: 'group'
+        group: '{{ PROXMOX_CLUSTER_FIREWALL_SECURITY_GROUP }}'
+        rules:
+          - pos: 0
+            comment: 'Allow Proxmox Web UI ({{ PROXMOX_PORT }}/tcp) from Management Network'
+            type: 'in'
+            action: 'ACCEPT'
+            source: '{{ PROXMOX_MANAGEMENT_NETWORK }}'
+            enable: true
+            dport: '{{ PROXMOX_PORT }}'
+            proto: 'tcp'
+            log: 'notice'
+
+          - pos: 1
+            comment: 'Allow SSH (22/tcp) from Management Network'
+            type: 'in'
+            action: 'ACCEPT'
+            source: '{{ PROXMOX_MANAGEMENT_NETWORK }}'
+            enable: true
+            dport: '22'
+            proto: 'tcp'
+            log: 'notice'
+
+          - pos: 2
+            comment: 'Default Deny'
+            type: 'in'
+            action: 'DROP'
+            enable: true
+            log: 'nolog'
+
+
