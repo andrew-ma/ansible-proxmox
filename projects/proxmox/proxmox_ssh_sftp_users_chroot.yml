@@ -20,7 +20,7 @@
 #----------------------------------------------
 ---
 - name: Proxmox - SSH sftp_users chroot
-  hosts: '{{ HOSTS | default(localhost) }}'
+  hosts: '{{ HOSTS | default("localhost") }}'
   gather_facts: true
   gather_subset:
     - '!all'

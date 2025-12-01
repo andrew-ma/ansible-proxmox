@@ -6,7 +6,7 @@
 #----------------------------------------------
 ---
 - name: Proxmox - SSH create authorized_keys user file
-  hosts: '{{ HOSTS | default(localhost) }}'
+  hosts: '{{ HOSTS | default("localhost") }}'
   gather_facts: true
   gather_subset:
     - '!all'
