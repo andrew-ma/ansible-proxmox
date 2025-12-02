@@ -1,0 +1,25 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+# ROLES:
+#   - proxmox_stig
+#----------------------------------------------
+---
+- name: Proxmox - STIG
+  hosts: '{{ HOSTS | default("localhost") }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+
+  tasks:
+    - name: Run proxmox stig role
+      ansible.builtin.include_role:
+        name: proxmox_stig
+
