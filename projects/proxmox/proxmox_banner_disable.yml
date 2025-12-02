@@ -19,6 +19,7 @@
   tasks:
     - name: Clear banner files
       become: true
+      register: __result
       ansible.builtin.copy:
         content: ''
         dest: '{{ item }}'
@@ -30,6 +31,13 @@
         - /etc/issue.net
         - /etc/motd
         - /run/motd.dynamic
+
+
+    - name: Set banner file as immutable if changed
+      loop: '{{ __result.results }}'
+      when: 'item.changed'
+      ansible.builtin.command:
+        cmd: 'chattr +i {{ item.dest }}'
 
 
     - name: Disable pam_motd.so in /etc/pam.d/sshd
