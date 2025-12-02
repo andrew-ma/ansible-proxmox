@@ -24,9 +24,9 @@ dependencies:
   galaxy: dependencies/galaxy_requirements.yml
   python: dependencies/python_requirements.txt
   system: dependencies/system_requirements.txt
-#build_arg_defaults:
-#  ANSIBLE_GALAXY_CLI_COLLECTION_OPTS: '-s 127.0.0.1'
-#  ANSIBLE_GALAXY_CLI_ROLE_OPTS: '-s 127.0.0.1'
+build_arg_defaults:
+  ANSIBLE_GALAXY_CLI_COLLECTION_OPTS: '-c'
+  ANSIBLE_GALAXY_CLI_ROLE_OPTS: '-c'
 #  PKGMGR_PRESERVE_CACHE: ''
 additional_build_files:
   - src: files/ansible.cfg
