@@ -574,7 +574,7 @@ rhel9STIG_stigrule_257982_LogLevel_Line: LogLevel VERBOSE
 
 # R-257983 RHEL-09-255035
 rhel9STIG_stigrule_257983_Manage: true
-rhel9STIG_stigrule_257983_PubkeyAuthentication_Line: PubkeyAuthentication true
+rhel9STIG_stigrule_257983_PubkeyAuthentication_Line: PubkeyAuthentication yes
 
 # R-257984 RHEL-09-255040
 rhel9STIG_stigrule_257984_Manage: true
@@ -586,7 +586,7 @@ rhel9STIG_stigrule_257985_PermitRootLogin_Line: PermitRootLogin no
 
 # R-257986 RHEL-09-255050
 rhel9STIG_stigrule_257986_Manage: true
-rhel9STIG_stigrule_257986_UsePAM_Line: UsePAM true
+rhel9STIG_stigrule_257986_UsePAM_Line: UsePAM yes
 
 # R-257992 RHEL-09-255080
 rhel9STIG_stigrule_257992_Manage: true
@@ -637,11 +637,11 @@ rhel9STIG_stigrule_258004_KerberosAuthentication_Line: KerberosAuthentication no
 
 # R-258005 RHEL-09-255145
 rhel9STIG_stigrule_258005_Manage: true
-rhel9STIG_stigrule_258005_IgnoreRhosts_Line: IgnoreRhosts true
+rhel9STIG_stigrule_258005_IgnoreRhosts_Line: IgnoreRhosts yes
 
 # R-258006 RHEL-09-255150
 rhel9STIG_stigrule_258006_Manage: true
-rhel9STIG_stigrule_258006_IgnoreUserKnownHosts_Line: IgnoreUserKnownHosts true
+rhel9STIG_stigrule_258006_IgnoreUserKnownHosts_Line: IgnoreUserKnownHosts yes
 
 # R-258007 RHEL-09-255155
 rhel9STIG_stigrule_258007_Manage: true
@@ -649,15 +649,15 @@ rhel9STIG_stigrule_258007_X11Forwarding_Line: X11Forwarding no
 
 # R-258008 RHEL-09-255160
 rhel9STIG_stigrule_258008_Manage: true
-rhel9STIG_stigrule_258008_StrictModes_Line: StrictModes true
+rhel9STIG_stigrule_258008_StrictModes_Line: StrictModes yes
 
 # R-258009 RHEL-09-255165
 rhel9STIG_stigrule_258009_Manage: true
-rhel9STIG_stigrule_258009_PrintLastLog_Line: PrintLastLog true
+rhel9STIG_stigrule_258009_PrintLastLog_Line: PrintLastLog yes
 
 # R-258011 RHEL-09-255175
 rhel9STIG_stigrule_258011_Manage: true
-rhel9STIG_stigrule_258011_X11UseLocalhost_Line: X11UseLocalhost true
+rhel9STIG_stigrule_258011_X11UseLocalhost_Line: X11UseLocalhost yes
 
 # R-258012 RHEL-09-271010
 rhel9STIG_stigrule_258012_Manage: true
