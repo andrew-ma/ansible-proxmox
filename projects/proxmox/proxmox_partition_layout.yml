@@ -1,0 +1,256 @@
+#----------------------------------------------
+# BECOME: yes
+# VAULT: no
+# COLLECTIONS:
+#   - community.general:
+#       - lvol
+#       - filesystem
+#   - ansible.posix:
+#       - mount
+# AFTER:
+#   - reboot the server
+#   - interrupt the grub boot and add to linux args: "rw break=premount"
+#
+#   - in (initramfs) shell:
+#     - mkdir -p /sysroot
+#     - mount /dev/pve/root /sysroot
+#     - mount /dev/nvme0n1p2 /sysroot/boot/efi
+#     - mount -t sys /sys /sysroot/sys
+#     - mount -t proc /proc /sysroot/proc
+#     - mount -o bind /dev /sysroot/dev
+#     - mount -o bind /dev/pts /sysroot/dev/pts
+#     - mount -o bind /run /sysroot/run
+#     - chroot /sysroot
+#
+#   - in chroot shell:
+#     - mkdir -p /mnt/tmp
+#     - mount /dev/pve/tmp /mnt/tmp
+#     - rsync -a /tmp/ /mnt/tmp
+#     - umount /mnt/tmp
+#
+#     - mkdir -p /mnt/var_tmp
+#     - mount /dev/pve/var_tmp /mnt/var_tmp
+#     - rsync -a /var/tmp/ /mnt/var_tmp
+#     - umount /mnt/var_tmp
+#     - rmdir /mnt/var_tmp
+#
+#     - mkdir -p /mnt/var_log_audit
+#     - mount /dev/pve/var_log_audit /mnt/var_log_audit
+#     - rsync -a /var/log/audit/ /mnt/var_log_audit
+#     - umount /mnt/var_log_audit
+#     - rmdir /mnt/var_log_audit
+#
+#     - mkdir -p /mnt/var_log
+#     - mount /dev/pve/var_log /mnt/var_log
+#     - rsync -a /var/log/ --exclude=audit /mnt/var_log
+#     - umount /mnt/var_log
+#     - rmdir /mnt/var_log
+#
+#     - mkdir -p /mnt/var
+#     - mount /dev/pve/var /mnt/var
+#     - rsync -a /var/ --exclude=log --exclude=tmp --exclude=lib/vz --exclude=lib/lxcfs /mnt/var
+#     - umount /mnt/var
+#     - rmdir /mnt/var
+#
+#     - mkdir -p /mnt/home
+#     - mount /dev/pve/home /mnt/home
+#     - rsync -a /home/ /mnt/home
+#     - umount /mnt/home
+#     - rmdir /mnt/home
+#
+#     - # Append lines from /etc/fstab.new to /etc/fstab
+#     - # But change the second column in each line to the actual mountpoint directories
+#     - cat /etc/fstab.new >> /etc/fstab
+#
+#   - exit the chroot shell
+#   - exit the initramfs shell
+#   - reboot the server
+#
+#----------------------------------------------
+---
+- name: Proxmox - Partition Layout
+  hosts: '{{ HOSTS | default("localhost") }}'
+  gather_facts: true
+  gather_subset:
+    - '!all'
+
+  vars:
+    VOLUME_GROUP: 'pve'
+
+    REQUIRED_FREE_SPACE_IN_GB: 33
+
+    LOGICAL_VOLUMES:
+      - mountpoint: /var
+        lv_name: var
+        size: 4G
+        thin: false
+        filesystem: ext4
+        mount_options: 'nodev,nosuid,noexec'
+
+      # /var/tmp is used during ISO file uploads, so it should be big enough
+      - mountpoint: /var/tmp
+        lv_name: var_tmp
+        size: 20G
+        thin: true
+        filesystem: ext4
+        mount_options: 'nodev,nosuid,noexec'
+
+      - mountpoint: /var/log
+        lv_name: var_log
+        size: 4G
+        thin: false
+        filesystem: ext4
+        mount_options: 'nodev,nosuid,noexec'
+
+      - mountpoint: /var/log/audit
+        lv_name: var_log_audit
+        size: 2G
+        thin: false
+        filesystem: ext4
+        mount_options: 'nodev,nosuid,noexec'
+
+      - mountpoint: /tmp
+        lv_name: tmp
+        size: 600M
+        thin: false
+        filesystem: ext4
+        mount_options: 'nodev,nosuid,noexec'
+
+      - mountpoint: /home
+        lv_name: home
+        size: 1G
+        thin: false
+        filesystem: ext4
+        mount_options: 'nodev,nosuid,noexec'
+
+
+
+
+  pre_tasks:
+    - name: Assertions - OS
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.os_family == 'Debian'
+
+
+    - name: Assertions - Variables
+      loop: '{{ LOGICAL_VOLUMES }}'
+      ansible.builtin.assert:
+        that:
+          - item.mountpoint is defined
+          - item.lv_name is defined
+          - item.size is defined
+          - item.thin is defined
+          - item.filesystem is defined
+          - item.mount_options is defined
+
+  tasks:
+    - name: Check free space in volume group
+      register: __result
+      changed_when:
+        - false
+      ansible.builtin.command:
+        cmd: 'vgs --headings=none -o vg_free --units=g {{ VOLUME_GROUP }}'
+
+
+    - name: Fact - actual_free_space
+      ansible.builtin.set_fact:
+        actual_free_space: '{{ __result.stdout | replace("g", "") | int }}'
+
+
+    - name: Assert that actual free space > required free space
+      ansible.builtin.assert:
+        that:
+          - 'actual_free_space | int > REQUIRED_FREE_SPACE_IN_GB | int'
+
+
+    - name: Get list of logical volumes that exist
+      register: __result
+      changed_when:
+        - false
+      ansible.builtin.command:
+        cmd: 'lvs --headings=none -o lv_name {{ VOLUME_GROUP }}'
+
+
+    - name: Fact - existing_logical_volumes
+      ansible.builtin.set_fact:
+        existing_logical_volumes: '{{ __result.stdout_lines | map("ansible.builtin.replace", " ", "") }}'
+
+
+    - name: Print existing logical volumes
+      ansible.builtin.debug:
+        var: existing_logical_volumes
+
+
+    - name: Separate thin and normal logical volumes
+      ansible.builtin.set_fact:
+        thin_logical_volumes: '{{ LOGICAL_VOLUMES | selectattr("thin", "equalto", true) | list }}'
+        normal_logical_volumes: '{{ LOGICAL_VOLUMES | selectattr("thin", "equalto", false) | list }}'
+
+
+    - name: Create thin logical pool if it does not exist
+      become: true
+      loop: '{{ thin_logical_volumes }}'
+      when:
+        - 'item.lv_name is not in existing_logical_volumes'
+      community.general.lvol:
+        vg: '{{ VOLUME_GROUP }}'
+        thinpool: '{{ item.lv_name }}'
+        size: '{{ item.size }}'
+        state: present
+
+
+    - name: Create normal logical volume if it does not exist
+      become: true
+      loop: '{{ normal_logical_volumes }}'
+      when:
+        - 'item.lv_name is not in existing_logical_volumes'
+      community.general.lvol:
+        vg: '{{ VOLUME_GROUP }}'
+        lv: '{{ item.lv_name }}'
+        size: '{{ item.size }}'
+        state: present
+
+
+    - name: Create filesystem if logical volume did not exist
+      become: true
+      loop: '{{ LOGICAL_VOLUMES }}'
+      when:
+        - 'item.lv_name is not in existing_logical_volumes'
+      community.general.filesystem:
+        fstype: '{{ item.filesystem }}'
+        dev: '/dev/{{ VOLUME_GROUP }}/{{ item.lv_name }}'
+
+
+    - name: Create temporary directory
+      register: __result_temp_dir
+      ansible.builtin.tempfile:
+        path: '/tmp'
+        state: 'directory'
+        suffix: '_proxmox_create_separate_lv'
+
+
+    - name: Create temporary mount point directory
+      loop: '{{ LOGICAL_VOLUMES }}'
+      when:
+        - 'item.lv_name is not in existing_logical_volumes'
+      ansible.builtin.file:
+        path: '{{ __result_temp_dir.path }}/{{ VOLUME_GROUP }}_{{ item.lv_name }}'
+        state: directory
+        mode: '0755'
+
+
+    - name: Mount create logical volumes to temporary mount point directory and create /etc/fstab.new file
+      loop: '{{ LOGICAL_VOLUMES }}'
+      when:
+        - 'item.lv_name is not in existing_logical_volumes'
+      ansible.posix.mount:
+        path: '{{ __result_temp_dir.path }}/{{ VOLUME_GROUP }}_{{ item.lv_name }}'
+        src: '/dev/{{ VOLUME_GROUP }}/{{ item.lv_name }}'
+        fstype: '{{ item.filesystem }}'
+        state: mounted
+        fstab: '/etc/fstab.new'
+        opts: '{{ item.mount_options }}'
+
+
+
