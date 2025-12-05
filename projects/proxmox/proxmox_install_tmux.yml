@@ -50,6 +50,6 @@
         mode: '0644'
       vars:
         etc_profile_d_tmux_sh_content: |
-          if ! groups $USER|grep -q tmux_excluded_users; then if [ "$PS1" ]; then parent=$(ps -o ppid= -p $$); name=$(ps -o comm= -p $parent); if [ "$name" == "sshd" ] || [ "$name" == "sshd-session" ] || [ "$name" == "login" ]; then tmux; fi; fi; fi
+          if ! groups $USER|grep -q tmux_excluded_users; then if [ "$PS1" ]; then parent=$(ps -o ppid= -p $$); name=$(ps -o comm= -p $parent); if [ "$name" == "sshd" ] || [ "$name" == "sshd-session" ] || [ "$name" == "login" ]; then exec tmux; fi; fi; fi
 
 
